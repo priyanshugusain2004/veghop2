@@ -2,21 +2,120 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VegHop - Vegetable Ordering</title>
-    <meta name="description" content="Accessible vegetable ordering and billing system (English + Hindi)" />
-    <!-- Tailwind via CDN for quick local run (production apps should use build step) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="VegHop" />
+    
+    <title>VegHop - Vegetable Ordering / सब्जी ऑर्डरिंग</title>
+    <meta name="description" content="Senior-friendly vegetable ordering and billing system with Hindi + English support. Easy shopping for vegetables with accessible interface." />
+    <meta name="keywords" content="vegetables, ordering, billing, hindi, english, senior-friendly, shopping, groceries" />
+    <meta name="author" content="VegHop" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="VegHop - Vegetable Ordering System" />
+    <meta property="og:description" content="Senior-friendly vegetable ordering with Hindi + English support" />
+    <meta property="og:image" content="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥬%3C/text%3E%3C/svg%3E" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary" />
+    <meta property="twitter:title" content="VegHop - Vegetable Ordering" />
+    <meta property="twitter:description" content="Senior-friendly vegetable ordering system" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json" />
+    <meta name="theme-color" content="#059669" />
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥬%3C/text%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥬%3C/text%3E%3C/svg%3E" />
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              'sans': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
+    
     <style>
-      /* small accessibility helpers */
-      :root { font-size: 18px; }
-      body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+      /* Accessibility and mobile optimizations */
+      :root { 
+        font-size: 18px; 
+      }
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        touch-action: manipulation;
+      }
+      
+      /* High contrast for accessibility */
+      @media (prefers-contrast: high) {
+        .bg-gray-50 { background-color: #ffffff !important; }
+        .text-gray-600 { color: #000000 !important; }
+        .border { border-color: #000000 !important; }
+      }
+      
+      /* Reduced motion for accessibility */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+      
+      /* Loading state */
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-size: 1.2rem;
+        color: #6b7280;
+      }
     </style>
   </head>
   <body class="bg-gray-50 text-gray-900">
-    <div id="root" class="min-h-screen"></div>
+    <div id="root" class="min-h-screen">
+      <div class="loading">
+        <div>Loading VegHop... / वेजहॉप लोड हो रहा है...</div>
+      </div>
+    </div>
 
     <!-- React & ReactDOM via CDN -->
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('./sw.js')
+            .then(function(registration) {
+              console.log('SW registered: ', registration);
+            })
+            .catch(function(registrationError) {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

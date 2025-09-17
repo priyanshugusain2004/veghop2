@@ -1,0 +1,29 @@
+# GitHub Pages configuration for VegHop
+title: VegHop - Vegetable Ordering System
+description: Senior-friendly vegetable ordering and billing system with Hindi + English support
+url: "https://priyanshugusain2004.github.io"
+baseurl: "/veghop2"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Exclude files from processing
+exclude:
+  - README.md
+  - .gitignore
+  - .vscode/
+  - node_modules/
+  - package*.json
+
+# Include files that start with underscores
+include:
+  - _config.yml
+
+# GitHub Pages specific settings
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: true

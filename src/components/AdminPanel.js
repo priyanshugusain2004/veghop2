@@ -4,6 +4,15 @@ export default function AdminPanel({ onBack }) {
   const [vegetables, setVegetables] = useState([])
   const [editedVegetables, setEditedVegetables] = useState([])
   const [saveStatus, setSaveStatus] = useState('')
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newItem, setNewItem] = useState({
+    id: '',
+    name: '',
+    hindi: '',
+    pricePerKg: '',
+    category: 'vegetable',
+    image: ''
+  })
 
   useEffect(() => {
     loadVegetables()
@@ -95,9 +104,9 @@ export default function AdminPanel({ onBack }) {
   }
 
   function downloadCurrentPrices() {
-    const csvContent = "id,name,hindi,price\n" + 
+    const csvContent = "id,name,hindi,price,category\n" + 
       editedVegetables.map(veg => 
-        `${veg.id},${veg.name},${veg.hindi},${veg.pricePerKg}`
+        `${veg.id},${veg.name},${veg.hindi},${veg.pricePerKg},${veg.category || 'vegetable'}`
       ).join('\n')
     
     const blob = new Blob([csvContent], { type: 'text/csv' })
@@ -109,34 +118,85 @@ export default function AdminPanel({ onBack }) {
     window.URL.revokeObjectURL(url)
   }
 
+  function handleAddNew() {
+    if (!newItem.name || !newItem.hindi || !newItem.pricePerKg) {
+      setSaveStatus('❌ Please fill all required fields')
+      setTimeout(() => setSaveStatus(''), 3000)
+      return
+    }
+
+    // Generate ID from name if not provided
+    const id = newItem.id || newItem.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    
+    // Check if ID already exists
+    if (editedVegetables.some(item => item.id === id)) {
+      setSaveStatus('❌ Item with this ID already exists')
+      setTimeout(() => setSaveStatus(''), 3000)
+      return
+    }
+
+    // Default image based on category
+    const defaultImage = newItem.category === 'fruit' 
+      ? "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3"
+      : "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3"
+
+    const newVegetable = {
+      ...newItem,
+      id,
+      pricePerKg: parseFloat(newItem.pricePerKg) || 0,
+      image: newItem.image || defaultImage
+    }
+
+    setEditedVegetables(prev => [...prev, newVegetable])
+    setNewItem({
+      id: '',
+      name: '',
+      hindi: '',
+      pricePerKg: '',
+      category: 'vegetable',
+      image: ''
+    })
+    setShowAddForm(false)
+    setSaveStatus('✅ New item added! Remember to click "Save All"')
+    setTimeout(() => setSaveStatus(''), 5000)
+  }
+
+  function handleDeleteItem(id) {
+    if (confirm('Are you sure you want to delete this item?')) {
+      setEditedVegetables(prev => prev.filter(item => item.id !== id))
+      setSaveStatus('✅ Item deleted! Remember to click "Save All"')
+      setTimeout(() => setSaveStatus(''), 3000)
+    }
+  }
+
   return (
-    React.createElement('div', { className: 'min-h-screen bg-gray-50 p-4' },
+    React.createElement('div', { className: 'min-h-screen bg-gray-50 p-2 sm:p-4' },
       React.createElement('div', { className: 'max-w-4xl mx-auto' },
         // Header
-        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-6 mb-6' },
-          React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4' },
+        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
+          React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4' },
             React.createElement('div', null,
-              React.createElement('h1', { className: 'text-2xl font-bold text-gray-800' }, 'Admin Panel / एडमिन पैनल'),
-              React.createElement('p', { className: 'text-gray-600' }, 'Update daily vegetable prices / दैनिक सब्जी दरें अपडेट करें')
+              React.createElement('h1', { className: 'text-xl sm:text-2xl font-bold text-gray-800' }, 'Admin Panel / एडमिन पैनल'),
+              React.createElement('p', { className: 'text-sm sm:text-base text-gray-600' }, 'Update daily vegetable prices / दैनिक सब्जी दरें अपडेट करें')
             ),
             React.createElement('button', {
               onClick: onBack,
-              className: 'px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium'
+              className: 'w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium transition-colors'
             }, '← Back / वापस')
           )
         ),
 
         // CSV Upload Section
-        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-6 mb-6' },
-          React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, 'Bulk Update / बल्क अपडेट'),
-          React.createElement('div', { className: 'flex flex-col sm:flex-row gap-4' },
+        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
+          React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold mb-3 sm:mb-4' }, 'Bulk Update / बल्क अपडेट'),
+          React.createElement('div', { className: 'flex flex-col gap-4' },
             React.createElement('div', null,
               React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Upload CSV / CSV अपलोड करें'),
               React.createElement('input', {
                 type: 'file',
                 accept: '.csv',
                 onChange: handleCSVUpload,
-                className: 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
+                className: 'block w-full text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
               }),
               React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Format: id,price (e.g., tomato,45)')
             ),
@@ -144,49 +204,143 @@ export default function AdminPanel({ onBack }) {
               React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Download Current / वर्तमान डाउनलोड करें'),
               React.createElement('button', {
                 onClick: downloadCurrentPrices,
-                className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm'
+                className: 'w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors'
               }, '📥 Download CSV')
             )
           )
         ),
 
+        // Add New Item Section
+        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
+          React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4' },
+            React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold' }, 'Add New Item / नया आइटम जोड़ें'),
+            React.createElement('button', {
+              onClick: () => setShowAddForm(!showAddForm),
+              className: 'w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors'
+            }, showAddForm ? '✕ Cancel' : '➕ Add New')
+          ),
+
+          showAddForm && React.createElement('div', { className: 'mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg' },
+            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4' },
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Name (English) *'),
+                React.createElement('input', {
+                  type: 'text',
+                  value: newItem.name,
+                  onChange: e => setNewItem(prev => ({ ...prev, name: e.target.value })),
+                  placeholder: 'e.g., Spinach',
+                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                })
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Name (Hindi) *'),
+                React.createElement('input', {
+                  type: 'text',
+                  value: newItem.hindi,
+                  onChange: e => setNewItem(prev => ({ ...prev, hindi: e.target.value })),
+                  placeholder: 'e.g., पालक',
+                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                })
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Price per kg (₹) *'),
+                React.createElement('input', {
+                  type: 'number',
+                  min: '0',
+                  step: '0.5',
+                  value: newItem.pricePerKg,
+                  onChange: e => setNewItem(prev => ({ ...prev, pricePerKg: e.target.value })),
+                  placeholder: 'e.g., 40',
+                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                })
+              ),
+              React.createElement('div', null,
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Category'),
+                React.createElement('select', {
+                  value: newItem.category,
+                  onChange: e => setNewItem(prev => ({ ...prev, category: e.target.value })),
+                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                },
+                  React.createElement('option', { value: 'vegetable' }, '🥬 Vegetable / सब्जी'),
+                  React.createElement('option', { value: 'fruit' }, '🍎 Fruit / फल')
+                )
+              ),
+              React.createElement('div', { className: 'sm:col-span-2' },
+                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Image URL (optional)'),
+                React.createElement('input', {
+                  type: 'url',
+                  value: newItem.image,
+                  onChange: e => setNewItem(prev => ({ ...prev, image: e.target.value })),
+                  placeholder: 'https://images.unsplash.com/...',
+                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                }),
+                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Leave empty for default image')
+              )
+            ),
+            React.createElement('div', { className: 'mt-4 flex flex-col sm:flex-row gap-3' },
+              React.createElement('button', {
+                onClick: handleAddNew,
+                className: 'w-full sm:w-auto px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors'
+              }, '✅ Add Item'),
+              React.createElement('button', {
+                onClick: () => setShowAddForm(false),
+                className: 'w-full sm:w-auto px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium transition-colors'
+              }, 'Cancel')
+            )
+          )
+        ),
+
         // Price Editing
-        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-6 mb-6' },
-          React.createElement('div', { className: 'flex justify-between items-center mb-4' },
-            React.createElement('h2', { className: 'text-xl font-semibold' }, 'Edit Prices / कीमतें संपादित करें'),
+        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
+          React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4' },
+            React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold' }, `Manage Items (${editedVegetables.length}) / आइटम प्रबंधित करें`),
             React.createElement('button', {
               onClick: handleSave,
-              className: 'px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium'
+              className: 'w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors'
             }, '💾 Save All / सभी सेव करें')
           ),
 
-          saveStatus && React.createElement('div', { className: 'mb-4 p-3 rounded-lg bg-blue-50 text-blue-800 text-center font-medium' }, saveStatus),
+          saveStatus && React.createElement('div', { className: 'mb-4 p-3 rounded-lg bg-blue-50 text-blue-800 text-center font-medium text-sm sm:text-base' }, saveStatus),
 
-          React.createElement('div', { className: 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' },
+          React.createElement('div', { className: 'grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' },
             editedVegetables.map(veg => (
-              React.createElement('div', { key: veg.id, className: 'border rounded-lg p-4' },
-                React.createElement('div', { className: 'flex items-center gap-3 mb-3' },
+              React.createElement('div', { 
+                key: veg.id, 
+                className: `border rounded-lg p-3 sm:p-4 ${veg.category === 'fruit' ? 'border-l-4 border-orange-400' : 'border-l-4 border-green-400'}`
+              },
+                React.createElement('div', { className: 'flex items-start gap-3 mb-3' },
                   React.createElement('img', { 
                     src: veg.image, 
                     alt: veg.name,
-                    className: 'w-12 h-12 rounded-lg object-cover'
+                    className: 'w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover flex-shrink-0'
                   }),
-                  React.createElement('div', null,
-                    React.createElement('h3', { className: 'font-semibold' }, veg.name),
-                    React.createElement('p', { className: 'text-gray-600 text-sm' }, veg.hindi)
+                  React.createElement('div', { className: 'flex-1 min-w-0' },
+                    React.createElement('div', { className: 'flex items-start justify-between gap-2 mb-1' },
+                      React.createElement('div', { className: 'flex items-center gap-2 min-w-0' },
+                        React.createElement('span', { className: 'text-base sm:text-lg flex-shrink-0' }, veg.category === 'fruit' ? '🍎' : '🥬'),
+                        React.createElement('h3', { className: 'font-semibold text-sm sm:text-base truncate' }, veg.name)
+                      ),
+                      React.createElement('button', {
+                        onClick: () => handleDeleteItem(veg.id),
+                        className: 'text-red-500 hover:text-red-700 text-lg sm:text-xl flex-shrink-0 p-1',
+                        title: 'Delete item'
+                      }, '🗑️')
+                    ),
+                    React.createElement('p', { className: 'text-gray-600 text-xs sm:text-sm truncate' }, veg.hindi),
+                    React.createElement('p', { className: 'text-xs text-gray-500 truncate' }, `ID: ${veg.id}`)
                   )
                 ),
                 React.createElement('div', { className: 'space-y-2' },
-                  React.createElement('label', { className: 'block text-sm font-medium text-gray-700' }, 'Price per kg / प्रति किलो कीमत'),
+                  React.createElement('label', { className: 'block text-xs sm:text-sm font-medium text-gray-700' }, 'Price per kg / प्रति किलो कीमत'),
                   React.createElement('div', { className: 'flex items-center gap-2' },
-                    React.createElement('span', { className: 'text-lg' }, '₹'),
+                    React.createElement('span', { className: 'text-base sm:text-lg font-medium flex-shrink-0' }, '₹'),
                     React.createElement('input', {
                       type: 'number',
                       min: '0',
                       step: '0.5',
                       value: veg.pricePerKg,
                       onChange: (e) => handlePriceChange(veg.id, e.target.value),
-                      className: 'flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg font-semibold'
+                      className: 'flex-1 px-2 sm:px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold transition-colors'
                     })
                   )
                 )
@@ -196,14 +350,16 @@ export default function AdminPanel({ onBack }) {
         ),
 
         // Instructions
-        React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-4' },
-          React.createElement('h3', { className: 'font-semibold text-yellow-800 mb-2' }, 'Instructions / निर्देश'),
-          React.createElement('ul', { className: 'text-sm text-yellow-700 space-y-1' },
+        React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4' },
+          React.createElement('h3', { className: 'font-semibold text-yellow-800 mb-2 text-sm sm:text-base' }, 'Instructions / निर्देश'),
+          React.createElement('ul', { className: 'text-xs sm:text-sm text-yellow-700 space-y-1' },
+            React.createElement('li', null, '• Click "Add New" to add vegetables/fruits'),
             React.createElement('li', null, '• Edit prices directly or upload a CSV file'),
-            React.createElement('li', null, '• CSV format: id,price (e.g., tomato,45)'),
-            React.createElement('li', null, '• Click "Save All" to update prices'),
+            React.createElement('li', null, '• CSV format: id,name,hindi,price,category'),
+            React.createElement('li', null, '• Click 🗑️ to delete items'),
+            React.createElement('li', null, '• Click "Save All" to update all changes'),
             React.createElement('li', null, '• Changes are saved locally and applied immediately'),
-            React.createElement('li', null, '• प्राइस सीधे एडिट करें या CSV फाइल अपलोड करें')
+            React.createElement('li', null, '• नया आइटम जोड़ने के लिए "Add New" पर क्लिक करें')
           )
         )
       )
