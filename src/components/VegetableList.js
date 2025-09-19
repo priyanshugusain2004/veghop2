@@ -25,7 +25,7 @@ export default function VegetableList({ onCheckout, onCart, onBackToUser }) {
   function addSelectedToCart() {
     if (!selected) return
     const qKg = Math.round((grams / 1000) * 1000) / 1000 // preserve 3 decimals
-    if (qKg <= 0) { alert('Enter a quantity greater than 0g / 0g से अधिक मात्रा दर्ज करें'); return }
+    if (qKg <= 0) { return } // silently return if invalid quantity
     const subtotal = Math.round((qKg * selected.pricePerKg) * 100) / 100
     const item = {
       id: `${selected.id}-${Date.now()}`,
@@ -38,8 +38,6 @@ export default function VegetableList({ onCheckout, onCart, onBackToUser }) {
     }
     addToCart(item)
     closeModal()
-    // friendly confirmation
-    setTimeout(() => alert(`${selected.name} (${grams}g) added to cart — ₹${subtotal.toFixed(2)}`), 50)
   }
 
   function quickPick(g) { setGrams(g) }

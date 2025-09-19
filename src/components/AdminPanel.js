@@ -14,6 +14,74 @@ export default function AdminPanel({ onBack }) {
     image: ''
   })
 
+  // Translation dictionary for common vegetables and fruits
+  const translations = {
+    // Vegetables
+    'tomato': 'टमाटर',
+    'potato': 'आलू',
+    'onion': 'प्याज़',
+    'carrot': 'गाजर',
+    'capsicum': 'शिमला मिर्च',
+    'cabbage': 'पत्ता गोभी',
+    'cauliflower': 'फूल गोभी',
+    'brinjal': 'बैंगन',
+    'eggplant': 'बैंगन',
+    'okra': 'भिंडी',
+    'spinach': 'पालक',
+    'peas': 'मटर',
+    'green peas': 'हरी मटर',
+    'cucumber': 'खीरा',
+    'radish': 'मूली',
+    'beetroot': 'चुकंदर',
+    'turnip': 'शलगम',
+    'ginger': 'अदरक',
+    'garlic': 'लहसुन',
+    'green chili': 'हरी मिर्च',
+    'coriander': 'धनिया',
+    'mint': 'पुदीना',
+    'fenugreek': 'मेथी',
+    'bottle gourd': 'लौकी',
+    'bitter gourd': 'करेला',
+    'ridge gourd': 'तोरी',
+    'pumpkin': 'कद्दू',
+    'sweet potato': 'शकरकंद',
+    'mushroom': 'मशरूम',
+    'corn': 'मक्का',
+    'lettuce': 'सलाद पत्ता',
+    
+    // Fruits
+    'apple': 'सेब',
+    'banana': 'केला',
+    'orange': 'संतरा',
+    'mango': 'आम',
+    'grapes': 'अंगूर',
+    'papaya': 'पपीता',
+    'watermelon': 'तरबूज़',
+    'pineapple': 'अनानास',
+    'pomegranate': 'अनार',
+    'guava': 'अमरूद',
+    'lemon': 'नींबू',
+    'lime': 'नींबू',
+    'coconut': 'नारियल',
+    'dates': 'खजूर',
+    'fig': 'अंजीर',
+    'kiwi': 'कीवी',
+    'strawberry': 'स्ट्रॉबेरी',
+    'cherry': 'चेरी',
+    'peach': 'आड़ू',
+    'plum': 'आलूबुखारा',
+    'lychee': 'लीची',
+    'jackfruit': 'कटहल',
+    'custard apple': 'सीताफल',
+    'dragon fruit': 'ड्रैगन फ्रूट'
+  }
+
+  // Function to auto-translate English name to Hindi
+  function autoTranslate(englishName) {
+    const lowerName = englishName.toLowerCase().trim()
+    return translations[lowerName] || ''
+  }
+
   useEffect(() => {
     loadVegetables()
   }, [])
@@ -227,10 +295,19 @@ export default function AdminPanel({ onBack }) {
                 React.createElement('input', {
                   type: 'text',
                   value: newItem.name,
-                  onChange: e => setNewItem(prev => ({ ...prev, name: e.target.value })),
+                  onChange: e => {
+                    const englishName = e.target.value
+                    const hindiTranslation = autoTranslate(englishName)
+                    setNewItem(prev => ({ 
+                      ...prev, 
+                      name: englishName,
+                      hindi: hindiTranslation || prev.hindi // Keep existing Hindi if no translation found
+                    }))
+                  },
                   placeholder: 'e.g., Spinach',
                   className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
-                })
+                }),
+                React.createElement('p', { className: 'text-xs text-blue-600 mt-1' }, '✨ Hindi name will auto-fill for common vegetables')
               ),
               React.createElement('div', null,
                 React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Name (Hindi) *'),

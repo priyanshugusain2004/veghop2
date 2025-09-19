@@ -10,6 +10,19 @@ import AdminPanel from './components/AdminPanel.js'
 export default function App() {
   const [screen, setScreen] = useState('user') // 'user' | 'list' | 'cart' | 'checkout' | 'admin'
   const [showAdminLogin, setShowAdminLogin] = useState(false)
+  const [toast, setToast] = useState(null)
+
+  // Listen for dispatched non-blocking alerts from the app (or suppressed native alerts)
+  React.useEffect(() => {
+    function onAlert(e) {
+      const msg = e && e.detail ? String(e.detail) : String(e)
+      setToast(msg)
+      // auto-clear after 3s
+      setTimeout(() => setToast(null), 3000)
+    }
+    window.addEventListener('veghop:alert', onAlert)
+    return () => window.removeEventListener('veghop:alert', onAlert)
+  }, [])
 
   return (
     React.createElement(UserProvider, null,
@@ -29,7 +42,7 @@ export default function App() {
 
         screen === 'user' && React.createElement(UserSelection, { onNext: () => setScreen('list') }),
         screen === 'list' && React.createElement(VegetableList, { onCheckout: () => setScreen('checkout'), onCart: () => setScreen('cart'), onBackToUser: () => setScreen('user') }),
-        screen === 'cart' && React.createElement(Cart, { onAddMore: () => setScreen('list'), onCheckout: () => setScreen('checkout') }),
+  screen === 'cart' && React.createElement(Cart, { onAddMore: () => setScreen('list'), onCheckout: () => setScreen('checkout'), onBack: () => setScreen('list') }),
         screen === 'checkout' && React.createElement(Checkout, { onContinue: () => setScreen('list'), onNewUser: () => setScreen('user') }),
         screen === 'admin' && React.createElement(AdminPanel, { onBack: () => setScreen('list') }),
 
@@ -38,6 +51,11 @@ export default function App() {
           onLogin: () => { setShowAdminLogin(false); setScreen('admin') },
           onCancel: () => setShowAdminLogin(false)
         })
+        ,
+        // Toast container (non-blocking) with ARIA live region for screen readers
+        toast && React.createElement('div', { className: 'fixed left-1/2 transform -translate-x-1/2 bottom-6 z-50', 'aria-live': 'polite', role: 'status' },
+          React.createElement('div', { className: 'bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg max-w-xl text-center' }, toast)
+        )
       )
     )
   )

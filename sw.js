@@ -1,5 +1,6 @@
 // Service Worker for VegHop - Basic offline support
-const CACHE_NAME = 'veghop-v1';
+// Include a short timestamp/version so deploys can bump cache name automatically.
+const CACHE_NAME = 'veghop-v3-' + (new Date().toISOString().slice(0,10));
 const urlsToCache = [
   './',
   './index.html',

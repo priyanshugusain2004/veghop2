@@ -1,11 +1,14 @@
 import React from 'https://esm.sh/react@18.2.0'
 import { useUser } from '../context/UserContext.js'
 
-export default function Cart({ onAddMore, onCheckout }) {
+export default function Cart({ onAddMore, onCheckout, onBack }) {
   const { users, currentUser } = useUser()
   const cart = currentUser && users[currentUser] ? users[currentUser].cart : []
 
   const total = cart.reduce((s,i) => s + (i.subtotal || 0), 0)
+  const [amountReceived, setAmountReceived] = React.useState('')
+  const receivedNum = parseFloat(String(amountReceived).replace(/[^0-9.-]/g, '')) || 0
+  const change = receivedNum - total
 
   return (
     React.createElement('section', { className: 'bg-white p-4 sm:p-6 rounded-lg shadow-md' },
@@ -25,7 +28,14 @@ export default function Cart({ onAddMore, onCheckout }) {
         )
       ),
 
+      React.createElement('div', { className: 'mt-4' },
+        React.createElement('label', { className: 'block text-sm text-gray-700 mb-2' }, 'Amount received (₹) / प्राप्त राशि'),
+        React.createElement('input', { type: 'number', value: amountReceived, onChange: e => setAmountReceived(e.target.value), className: 'p-3 w-full sm:w-56 border rounded-lg text-xl', placeholder: 'Enter amount received' }),
+        React.createElement('div', { className: 'mt-2 text-right text-lg font-medium' }, change >= 0 ? `Change: ₹${change.toFixed(2)}` : 'Amount insufficient')
+      ),
+
       React.createElement('div', { className: 'mt-6 flex flex-col sm:flex-row gap-3' },
+        React.createElement('button', { onClick: onBack, className: 'w-full sm:flex-1 p-4 bg-gray-300 rounded-lg text-xl' }, 'Back / वापस'),
         React.createElement('button', { onClick: onAddMore, className: 'w-full sm:flex-1 p-4 bg-gray-200 rounded-lg text-xl' }, 'Add More / और जोड़ें'),
         React.createElement('button', { onClick: onCheckout, className: 'w-full sm:flex-1 p-4 bg-indigo-600 text-white rounded-lg text-xl' }, 'Checkout / बिल')
       )

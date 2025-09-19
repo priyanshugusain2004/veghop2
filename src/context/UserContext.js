@@ -45,6 +45,13 @@ export function UserProvider({ children }) {
       const newCart = [...user.cart, item]
       return { ...prev, [currentUser]: { ...user, cart: newCart } }
     })
+    try {
+      const msg = `${item.name} (${Math.round(item.qtyKg*1000)}g) added to cart — ₹${item.subtotal.toFixed(2)}`
+      const evt = new CustomEvent('veghop:alert', { detail: msg })
+      window.dispatchEvent(evt)
+    } catch (e) {
+      console.warn('addToCart: could not dispatch veghop:alert', e)
+    }
   }
 
   function clearCart() {
