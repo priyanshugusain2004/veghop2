@@ -7,19 +7,57 @@ function bufToHex(buf) {
 }
 
 async function hashWithSalt(password, saltHex) {
+  // Use Web Crypto when available. If not available (insecure context), fall back to a simple JS hash
   const enc = new TextEncoder()
-  const saltBytes = new Uint8Array(saltHex.match(/.{1,2}/g).map(h => parseInt(h, 16)))
-  const data = new Uint8Array(saltBytes.length + enc.encode(password).length)
+  let saltBytes = new Uint8Array(0)
+  try {
+    if (saltHex && typeof saltHex === 'string') {
+      const pairs = saltHex.match(/.{1,2}/g) || []
+      saltBytes = new Uint8Array(pairs.map(h => parseInt(h, 16)))
+    }
+  } catch (e) {
+    saltBytes = new Uint8Array(0)
+  }
+
+  const passBytes = enc.encode(password)
+  const data = new Uint8Array(saltBytes.length + passBytes.length)
   data.set(saltBytes, 0)
-  data.set(enc.encode(password), saltBytes.length)
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return bufToHex(hash)
+  data.set(passBytes, saltBytes.length)
+
+  if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) {
+    const hash = await crypto.subtle.digest('SHA-256', data)
+    return bufToHex(hash)
+  }
+
+  // Fallback (not cryptographically secure): simple xorshift-like hash to avoid runtime errors
+  // NOTE: this fallback is only to prevent the app from crashing in non-HTTPS/dev environments.
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < data.length; i++) {
+    h ^= data[i]
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  // Convert to hex string repeated to reach 32 bytes worth of hex (simulate 256-bit)
+  const hex = h.toString(16).padStart(8, '0')
+  return hex.repeat(8)
 }
 
 function makeSaltHex() {
-  const arr = new Uint8Array(12)
-  crypto.getRandomValues(arr)
-  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
+  // Prefer secure random; fall back to Math.random if unavailable
+  try {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const arr = new Uint8Array(12)
+      crypto.getRandomValues(arr)
+      return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
+    }
+  } catch (e) {
+    // fall through
+  }
+  // Fallback (less secure)
+  const bytes = []
+  for (let i = 0; i < 12; i++) {
+    bytes.push(Math.floor(Math.random() * 256))
+  }
+  return bytes.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 export default function AdminLogin({ onLogin, onCancel }) {

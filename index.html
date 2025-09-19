@@ -27,8 +27,9 @@
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#059669" />
-  <!-- Basic Content Security Policy: allow self and trusted CDNs used here. Adjust for your hosting. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data:; font-src 'self'; connect-src 'self';">
+    <!-- Content Security Policy: relaxed for CDN usage and inline Tailwind CDN config. For production, replace CDN usage
+      with build-time Tailwind and remove 'unsafe-inline' scripts/styles. Adjust hosts as needed. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://esm.sh https://cdn.tailwindcss.com;">
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥬%3C/text%3E%3C/svg%3E" />
@@ -109,13 +110,24 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('./sw.js')
-            .then(function(registration) {
-              console.log('SW registered: ', registration);
-            })
-            .catch(function(registrationError) {
-              console.log('SW registration failed: ', registrationError);
-            });
+          try {
+            const host = window.location.hostname || ''
+            // Skip SW registration on common local/dev hosts to avoid cache confusion
+            if (host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')) {
+              console.log('Skipping service worker registration in dev/local environment')
+              return
+            }
+
+            navigator.serviceWorker.register('./sw.js')
+              .then(function(registration) {
+                console.log('SW registered: ', registration);
+              })
+              .catch(function(registrationError) {
+                console.log('SW registration failed: ', registrationError);
+              });
+          } catch (e) {
+            console.warn('SW registration skipped due to error or dev environment', e)
+          }
         });
       }
     </script>

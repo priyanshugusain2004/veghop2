@@ -1,6 +1,6 @@
 // Service Worker for VegHop - Basic offline support
 // Include a short timestamp/version so deploys can bump cache name automatically.
-const CACHE_NAME = 'veghop-v3-' + (new Date().toISOString().slice(0,10));
+const CACHE_NAME = 'veghop-v3-' + (new Date().toISOString().replace(/[:.TZ-]/g, ''));
 const urlsToCache = [
   './',
   './index.html',
@@ -20,6 +20,8 @@ const urlsToCache = [
 
 // Install event - cache resources
 self.addEventListener('install', function(event) {
+  // Immediately take control on next load
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
@@ -52,6 +54,9 @@ self.addEventListener('activate', function(event) {
           }
         })
       );
+    }).then(function() {
+      // Take control of uncontrolled clients immediately
+      return self.clients.claim();
     })
   );
 });

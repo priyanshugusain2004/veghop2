@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0'
+import { clearAllCachesAndReload } from '../utils/cacheHelpers.js'
 
 export default function AdminPanel({ onBack }) {
   const [vegetables, setVegetables] = useState([])
@@ -237,6 +238,18 @@ export default function AdminPanel({ onBack }) {
     }
   }
 
+  function isDevOrAdminVisible() {
+    // Show the clear caches button during development (localhost) or to an admin flag
+    try {
+      const isAdmin = localStorage.getItem('veghop:isAdmin') === 'true'
+      const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || ''
+      const isLocal = host === 'localhost' || host === '127.0.0.1'
+      return isAdmin || isLocal
+    } catch (e) {
+      return false
+    }
+  }
+
   return (
     React.createElement('div', { className: 'min-h-screen bg-gray-50 p-2 sm:p-4' },
       React.createElement('div', { className: 'max-w-4xl mx-auto' },
@@ -438,6 +451,12 @@ export default function AdminPanel({ onBack }) {
             React.createElement('li', null, '• Changes are saved locally and applied immediately'),
             React.createElement('li', null, '• नया आइटम जोड़ने के लिए "Add New" पर क्लिक करें')
           )
+  ),
+  isDevOrAdminVisible() && React.createElement('div', { className: 'mt-4' },
+          React.createElement('button', {
+            onClick: () => clearAllCachesAndReload({ keysToRemove: ['vegetablePrices', 'veghop:adminHash', 'veghop:adminSalt', 'veghop:isAdmin'] }),
+            className: 'w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors'
+          }, '⚠️ Clear caches & reload (dev/admin only)')
         )
       )
     )

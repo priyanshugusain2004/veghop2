@@ -37,7 +37,10 @@ export default function Cart({ onAddMore, onCheckout, onBack }) {
       React.createElement('div', { className: 'mt-6 flex flex-col sm:flex-row gap-3' },
         React.createElement('button', { onClick: onBack, className: 'w-full sm:flex-1 p-4 bg-gray-300 rounded-lg text-xl' }, 'Back / वापस'),
         React.createElement('button', { onClick: onAddMore, className: 'w-full sm:flex-1 p-4 bg-gray-200 rounded-lg text-xl' }, 'Add More / और जोड़ें'),
-        React.createElement('button', { onClick: onCheckout, className: 'w-full sm:flex-1 p-4 bg-indigo-600 text-white rounded-lg text-xl' }, 'Checkout / बिल')
+        React.createElement('div', { className: 'flex gap-2 w-full sm:flex-1' },
+          React.createElement('button', { onClick: () => setAmountReceived(total.toFixed(2)), className: 'flex-1 p-4 bg-yellow-500 text-white rounded-lg text-xl' }, 'Exact / Exact'),
+          React.createElement('button', { onClick: onCheckout, disabled: receivedNum < total, className: `flex-1 p-4 rounded-lg text-xl ${receivedNum < total ? 'bg-gray-300 text-gray-700' : 'bg-indigo-600 text-white'}` }, 'Checkout / बिल')
+        )
       )
     )
   )

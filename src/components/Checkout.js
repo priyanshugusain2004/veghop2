@@ -14,17 +14,12 @@ export default function Checkout({ onContinue, onNewUser }) {
   function handleFinish() {
     // For demo, require received amount >= total
     if (receivedNum < total) {
-      try { window.dispatchEvent(new CustomEvent('veghop:alert', { detail: 'Amount received is less than total / राशि अपर्याप्त' })) } catch (e) { console.warn(e) }
+      console.warn('Amount received is less than total / राशि अपर्याप्त')
       return
     }
     // For demo, clear cart but keep user
     clearCart()
-    try {
-      const evt = new CustomEvent('veghop:alert', { detail: `Payment simulated. Thank you! / भुगतान सफल। धन्यवाद। Change: ₹${change.toFixed(2)}` })
-      window.dispatchEvent(evt)
-    } catch (e) {
-      console.warn('veghop:alert (payment):', 'Payment simulated. Thank you!')
-    }
+    console.log(`Payment simulated. Change: ₹${change.toFixed(2)}`)
     onContinue()
   }
 
@@ -54,7 +49,10 @@ export default function Checkout({ onContinue, onNewUser }) {
 
       React.createElement('div', { className: 'mt-6 flex flex-col sm:flex-row gap-3' },
         React.createElement('button', { onClick: onContinue, className: 'w-full sm:flex-1 p-4 bg-gray-200 rounded-lg text-xl' }, 'Back / वापस'),
-        React.createElement('button', { onClick: handleFinish, className: 'w-full sm:flex-1 p-4 bg-green-600 text-white rounded-lg text-xl' }, 'Pay (Simulated) / भुगतान करें'),
+        React.createElement('div', { className: 'flex gap-2 w-full sm:flex-1' },
+          React.createElement('button', { onClick: () => setAmountReceived(total.toFixed(2)), className: 'flex-1 p-4 bg-yellow-500 text-white rounded-lg text-xl' }, 'Exact / Exact'),
+          React.createElement('button', { onClick: handleFinish, disabled: receivedNum < total, className: `flex-1 p-4 rounded-lg text-xl ${receivedNum < total ? 'bg-gray-300 text-gray-700' : 'bg-green-600 text-white'}` }, 'Pay (Simulated) / भुगतान करें')
+        ),
         React.createElement('button', { onClick: onNewUser, className: 'w-full sm:w-auto p-4 bg-red-500 text-white rounded-lg text-xl' }, 'New User / नया उपयोगकर्ता')
       )
     )
