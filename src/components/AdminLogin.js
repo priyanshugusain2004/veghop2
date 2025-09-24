@@ -69,11 +69,17 @@ export default function AdminLogin({ onLogin, onCancel }) {
   const [blockedUntil, setBlockedUntil] = useState(null)
 
   useEffect(() => {
-    const hash = localStorage.getItem('veghop:adminHash')
-    if (!hash) setMode('setup')
-    // check if blocked
-    const blocked = parseInt(localStorage.getItem('veghop:adminBlockedUntil') || '0', 10)
-    if (blocked && blocked > Date.now()) setBlockedUntil(blocked)
+    // Check if admin is configured on backend
+    fetch('http://localhost:4000/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: '' }) // empty password to check config
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error === 'Admin not configured') setMode('setup')
+      })
+      .catch(() => setMode('setup'))
   }, [])
 
   function setErrorTimed(msg) {
@@ -86,14 +92,17 @@ export default function AdminLogin({ onLogin, onCancel }) {
     if (!newPassword) return setErrorTimed('Enter a password / पासवर्ड दर्ज करें')
     if (newPassword !== confirmPassword) return setErrorTimed('Passwords do not match / पासवर्ड मेल नहीं खाते')
     try {
-      const salt = makeSaltHex()
-      const h = await hashWithSalt(newPassword, salt)
-      localStorage.setItem('veghop:adminSalt', salt)
-      localStorage.setItem('veghop:adminHash', h)
-      // reset attempts
-      localStorage.removeItem('veghop:adminAttempts')
-      localStorage.removeItem('veghop:adminBlockedUntil')
-      onLogin()
+      const res = await fetch('http://localhost:4000/api/admin/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword })
+      })
+      const data = await res.json()
+      if (data.success) {
+        onLogin()
+      } else {
+        setErrorTimed(data.error || 'Could not set password')
+      }
     } catch (err) {
       console.error(err)
       setErrorTimed('Could not set password')
@@ -102,34 +111,17 @@ export default function AdminLogin({ onLogin, onCancel }) {
 
   async function handleLogin(e) {
     e.preventDefault()
-    const blocked = parseInt(localStorage.getItem('veghop:adminBlockedUntil') || '0', 10)
-    if (blocked && blocked > Date.now()) {
-      setBlockedUntil(blocked)
-      return setErrorTimed('Too many attempts. Try again later / बहुत प्रयास। बाद में प्रयास करें')
-    }
     try {
-      const salt = localStorage.getItem('veghop:adminSalt')
-      const stored = localStorage.getItem('veghop:adminHash')
-      if (!salt || !stored) return setErrorTimed('Admin not configured. Set password first.')
-      const h = await hashWithSalt(password, salt)
-      if (h === stored) {
-        // success
-        localStorage.removeItem('veghop:adminAttempts')
-        localStorage.removeItem('veghop:adminBlockedUntil')
+      const res = await fetch('http://localhost:4000/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      })
+      const data = await res.json()
+      if (data.success) {
         onLogin()
       } else {
-        // failure: increment attempts
-        const attempts = parseInt(localStorage.getItem('veghop:adminAttempts') || '0', 10) + 1
-        localStorage.setItem('veghop:adminAttempts', String(attempts))
-        if (attempts >= 5) {
-          const blockFor = 5 * 60 * 1000 // 5 minutes
-          const until = Date.now() + blockFor
-          localStorage.setItem('veghop:adminBlockedUntil', String(until))
-          setBlockedUntil(until)
-          setErrorTimed('Too many attempts. Blocked for 5 minutes / 5 मिनट के लिए अवरुद्ध')
-        } else {
-          setErrorTimed('Invalid password / गलत पासवर्ड')
-        }
+        setErrorTimed(data.error || 'Invalid password / गलत पासवर्ड')
       }
     } catch (err) {
       console.error(err)

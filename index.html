@@ -29,7 +29,7 @@
     <meta name="theme-color" content="#059669" />
     <!-- Content Security Policy: relaxed for CDN usage and inline Tailwind CDN config. For production, replace CDN usage
       with build-time Tailwind and remove 'unsafe-inline' scripts/styles. Adjust hosts as needed. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://esm.sh https://cdn.tailwindcss.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.github.dev; manifest-src 'self' https://*.github.dev https://github.dev; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://esm.sh https://cdn.tailwindcss.com;">
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🥬%3C/text%3E%3C/svg%3E" />

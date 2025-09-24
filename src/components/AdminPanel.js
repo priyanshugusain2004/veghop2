@@ -2,18 +2,9 @@ import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0'
 import { clearAllCachesAndReload } from '../utils/cacheHelpers.js'
 
 export default function AdminPanel({ onBack }) {
-  const [vegetables, setVegetables] = useState([])
-  const [editedVegetables, setEditedVegetables] = useState([])
-  const [saveStatus, setSaveStatus] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newItem, setNewItem] = useState({
-    id: '',
-    name: '',
-    hindi: '',
-    pricePerKg: '',
-    category: 'vegetable',
-    image: ''
-  })
+  const [userData, setUserData] = useState([])
+  const [userStatus, setUserStatus] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
 
   // Translation dictionary for common vegetables and fruits
   const translations = {
@@ -84,181 +75,101 @@ export default function AdminPanel({ onBack }) {
   }
 
   useEffect(() => {
-    loadVegetables()
+    loadUserData()
   }, [])
 
-  async function loadVegetables() {
+  function loadUserData(date = '') {
     try {
-      // Try localStorage first (for previous admin updates)
-      const savedPrices = localStorage.getItem('vegetablePrices')
-      if (savedPrices) {
-        const data = JSON.parse(savedPrices)
-        setVegetables(data)
-        setEditedVegetables([...data])
-        return
+      let data = JSON.parse(localStorage.getItem('veghop:purchases') || '[]')
+      if (date) {
+        data = data.filter(u => u.date && u.date.startsWith(date))
       }
-
-      // Fall back to JSON file
-      const response = await fetch('/src/data/vegetables.json')
-      const data = await response.json()
-      setVegetables(data)
-      setEditedVegetables([...data])
+      setUserData(data)
     } catch (error) {
-      console.error('Error loading vegetables:', error)
+      setUserStatus('❌ Error loading user data')
+      setTimeout(() => setUserStatus(''), 3000)
     }
   }
 
-  function handlePriceChange(id, newPrice) {
-    const price = parseFloat(newPrice) || 0
-    setEditedVegetables(prev => 
-      prev.map(veg => veg.id === id ? { ...veg, pricePerKg: price } : veg)
-    )
+  function handleDateFilterChange(e) {
+    setDateFilter(e.target.value)
+    loadUserData(e.target.value)
   }
 
-  async function handleSave() {
-    try {
-      // Save to localStorage for persistence
-      localStorage.setItem('vegetablePrices', JSON.stringify(editedVegetables))
-      
-      setSaveStatus('✅ Prices updated successfully!')
-      setTimeout(() => setSaveStatus(''), 3000)
-    } catch (error) {
-      setSaveStatus('❌ Error saving prices')
-      setTimeout(() => setSaveStatus(''), 3000)
+    function downloadUserDataCSV() {
+      if (!userData.length) return
+      const csvContent = 'date,userName,item,hindi,qtyKg,pricePerKg,subtotal,total\n' +
+        userData.map(u =>
+          u.items.map(i =>
+            `${u.date},${u.userName},${i.name},${i.hindi},${i.qtyKg},${i.pricePerKg},${i.subtotal},${u.total}`
+          ).join('\n')
+        ).join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `user-data-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
     }
-  }
 
-  function handleCSVUpload(event) {
-    const file = event.target.files[0]
-    if (!file) return
+  // Group purchases by user
+  const userGroups = {}
+  userData.forEach(p => {
+    if (!userGroups[p.userName]) userGroups[p.userName] = []
+    userGroups[p.userName].push(p)
+  })
 
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const csv = e.target.result
-        const lines = csv.split('\n')
-        const header = lines[0].toLowerCase()
-        
-        if (!header.includes('id') || !header.includes('price')) {
-          setSaveStatus('❌ CSV must have "id" and "price" columns')
-          return
-        }
-
-        const updates = {}
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim()
-          if (!line) continue
-          
-          const [id, price] = line.split(',')
-          if (id && price) {
-            updates[id.trim()] = parseFloat(price.trim()) || 0
-          }
-        }
-
-        setEditedVegetables(prev => 
-          prev.map(veg => ({
-            ...veg,
-            pricePerKg: updates[veg.id] !== undefined ? updates[veg.id] : veg.pricePerKg
-          }))
-        )
-
-        setSaveStatus('✅ CSV loaded successfully!')
-        setTimeout(() => setSaveStatus(''), 3000)
-      } catch (error) {
-        setSaveStatus('❌ Error reading CSV file')
-        setTimeout(() => setSaveStatus(''), 3000)
-      }
-    }
-    reader.readAsText(file)
-  }
-
-  function downloadCurrentPrices() {
-    const csvContent = "id,name,hindi,price,category\n" + 
-      editedVegetables.map(veg => 
-        `${veg.id},${veg.name},${veg.hindi},${veg.pricePerKg},${veg.category || 'vegetable'}`
-      ).join('\n')
-    
+  function downloadUserDetailsCSV() {
+    const rows = [['User Name', 'Date & Time', 'Item', 'Hindi', 'Qty (kg)', 'Price/kg', 'Subtotal', 'Total']]
+    Object.entries(userGroups).forEach(([user, purchases]) => {
+      purchases.forEach(p => {
+        p.items.forEach(i => {
+          rows.push([user, p.date, i.name, i.hindi, i.qtyKg, i.pricePerKg, i.subtotal, p.total])
+        })
+      })
+    })
+    const csvContent = rows.map(r => r.join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `vegetable-prices-${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `user-details-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     window.URL.revokeObjectURL(url)
   }
 
-  function handleAddNew() {
-    if (!newItem.name || !newItem.hindi || !newItem.pricePerKg) {
-      setSaveStatus('❌ Please fill all required fields')
-      setTimeout(() => setSaveStatus(''), 3000)
+  // Export to Excel (.xlsx) using xlsx CDN
+  function downloadUserDetailsExcel() {
+    if (!window.XLSX) {
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
+      script.onload = () => downloadUserDetailsExcel()
+      document.body.appendChild(script)
       return
     }
-
-    // Generate ID from name if not provided
-    const id = newItem.id || newItem.name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
-    
-    // Check if ID already exists
-    if (editedVegetables.some(item => item.id === id)) {
-      setSaveStatus('❌ Item with this ID already exists')
-      setTimeout(() => setSaveStatus(''), 3000)
-      return
-    }
-
-    // Default image based on category
-    const defaultImage = newItem.category === 'fruit' 
-      ? "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3"
-      : "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?q=80&w=600&auto=format&fit=crop&ixlib=rb-4.0.3"
-
-    const newVegetable = {
-      ...newItem,
-      id,
-      pricePerKg: parseFloat(newItem.pricePerKg) || 0,
-      image: newItem.image || defaultImage
-    }
-
-    setEditedVegetables(prev => [...prev, newVegetable])
-    setNewItem({
-      id: '',
-      name: '',
-      hindi: '',
-      pricePerKg: '',
-      category: 'vegetable',
-      image: ''
+    const rows = [['User Name', 'Date & Time', 'Item', 'Hindi', 'Qty (kg)', 'Price/kg', 'Subtotal', 'Total']]
+    Object.entries(userGroups).forEach(([user, purchases]) => {
+      purchases.forEach(p => {
+        p.items.forEach(i => {
+          rows.push([user, p.date, i.name, i.hindi, i.qtyKg, i.pricePerKg, i.subtotal, p.total])
+        })
+      })
     })
-    setShowAddForm(false)
-    setSaveStatus('✅ New item added! Remember to click "Save All"')
-    setTimeout(() => setSaveStatus(''), 5000)
-  }
-
-  function handleDeleteItem(id) {
-    if (confirm('Are you sure you want to delete this item?')) {
-      setEditedVegetables(prev => prev.filter(item => item.id !== id))
-      setSaveStatus('✅ Item deleted! Remember to click "Save All"')
-      setTimeout(() => setSaveStatus(''), 3000)
-    }
-  }
-
-  function isDevOrAdminVisible() {
-    // Show the clear caches button during development (localhost) or to an admin flag
-    try {
-      const isAdmin = localStorage.getItem('veghop:isAdmin') === 'true'
-      const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || ''
-      const isLocal = host === 'localhost' || host === '127.0.0.1'
-      return isAdmin || isLocal
-    } catch (e) {
-      return false
-    }
+    const ws = window.XLSX.utils.aoa_to_sheet(rows)
+    const wb = window.XLSX.utils.book_new()
+    window.XLSX.utils.book_append_sheet(wb, ws, 'UserDetails')
+    window.XLSX.writeFile(wb, `user-details-${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   return (
     React.createElement('div', { className: 'min-h-screen bg-gray-50 p-2 sm:p-4' },
       React.createElement('div', { className: 'max-w-4xl mx-auto' },
-        // Header
         React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
           React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4' },
             React.createElement('div', null,
               React.createElement('h1', { className: 'text-xl sm:text-2xl font-bold text-gray-800' }, 'Admin Panel / एडमिन पैनल'),
-              React.createElement('p', { className: 'text-sm sm:text-base text-gray-600' }, 'Update daily vegetable prices / दैनिक सब्जी दरें अपडेट करें')
+              React.createElement('p', { className: 'text-sm sm:text-base text-gray-600' }, 'View user checkout data / उपयोगकर्ता डेटा देखें')
             ),
             React.createElement('button', {
               onClick: onBack,
@@ -266,199 +177,93 @@ export default function AdminPanel({ onBack }) {
             }, '← Back / वापस')
           )
         ),
-
-        // CSV Upload Section
+        // User Details Section
         React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
-          React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold mb-3 sm:mb-4' }, 'Bulk Update / बल्क अपडेट'),
-          React.createElement('div', { className: 'flex flex-col gap-4' },
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Upload CSV / CSV अपलोड करें'),
-              React.createElement('input', {
-                type: 'file',
-                accept: '.csv',
-                onChange: handleCSVUpload,
-                className: 'block w-full text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
-              }),
-              React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Format: id,price (e.g., tomato,45)')
-            ),
-            React.createElement('div', null,
-              React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Download Current / वर्तमान डाउनलोड करें'),
-              React.createElement('button', {
-                onClick: downloadCurrentPrices,
-                className: 'w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors'
-              }, '📥 Download CSV')
-            )
-          )
-        ),
-
-        // Add New Item Section
-        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
-          React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4' },
-            React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold' }, 'Add New Item / नया आइटम जोड़ें'),
+          React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-green-700' }, 'User Details / उपयोगकर्ता विवरण'),
+          React.createElement('div', { className: 'flex gap-2 mb-4' },
             React.createElement('button', {
-              onClick: () => setShowAddForm(!showAddForm),
-              className: 'w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors'
-            }, showAddForm ? '✕ Cancel' : '➕ Add New')
-          ),
-
-          showAddForm && React.createElement('div', { className: 'mt-4 p-3 sm:p-4 bg-gray-50 rounded-lg' },
-            React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4' },
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Name (English) *'),
-                React.createElement('input', {
-                  type: 'text',
-                  value: newItem.name,
-                  onChange: e => {
-                    const englishName = e.target.value
-                    const hindiTranslation = autoTranslate(englishName)
-                    setNewItem(prev => ({ 
-                      ...prev, 
-                      name: englishName,
-                      hindi: hindiTranslation || prev.hindi // Keep existing Hindi if no translation found
-                    }))
-                  },
-                  placeholder: 'e.g., Spinach',
-                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
-                }),
-                React.createElement('p', { className: 'text-xs text-blue-600 mt-1' }, '✨ Hindi name will auto-fill for common vegetables')
-              ),
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Name (Hindi) *'),
-                React.createElement('input', {
-                  type: 'text',
-                  value: newItem.hindi,
-                  onChange: e => setNewItem(prev => ({ ...prev, hindi: e.target.value })),
-                  placeholder: 'e.g., पालक',
-                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
-                })
-              ),
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Price per kg (₹) *'),
-                React.createElement('input', {
-                  type: 'number',
-                  min: '0',
-                  step: '0.5',
-                  value: newItem.pricePerKg,
-                  onChange: e => setNewItem(prev => ({ ...prev, pricePerKg: e.target.value })),
-                  placeholder: 'e.g., 40',
-                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
-                })
-              ),
-              React.createElement('div', null,
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Category'),
-                React.createElement('select', {
-                  value: newItem.category,
-                  onChange: e => setNewItem(prev => ({ ...prev, category: e.target.value })),
-                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
-                },
-                  React.createElement('option', { value: 'vegetable' }, '🥬 Vegetable / सब्जी'),
-                  React.createElement('option', { value: 'fruit' }, '🍎 Fruit / फल')
-                )
-              ),
-              React.createElement('div', { className: 'sm:col-span-2' },
-                React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Image URL (optional)'),
-                React.createElement('input', {
-                  type: 'url',
-                  value: newItem.image,
-                  onChange: e => setNewItem(prev => ({ ...prev, image: e.target.value })),
-                  placeholder: 'https://images.unsplash.com/...',
-                  className: 'w-full px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
-                }),
-                React.createElement('p', { className: 'text-xs text-gray-500 mt-1' }, 'Leave empty for default image')
-              )
-            ),
-            React.createElement('div', { className: 'mt-4 flex flex-col sm:flex-row gap-3' },
-              React.createElement('button', {
-                onClick: handleAddNew,
-                className: 'w-full sm:w-auto px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors'
-              }, '✅ Add Item'),
-              React.createElement('button', {
-                onClick: () => setShowAddForm(false),
-                className: 'w-full sm:w-auto px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium transition-colors'
-              }, 'Cancel')
-            )
-          )
-        ),
-
-        // Price Editing
-        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
-          React.createElement('div', { className: 'flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4' },
-            React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold' }, `Manage Items (${editedVegetables.length}) / आइटम प्रबंधित करें`),
+              onClick: downloadUserDetailsCSV,
+              className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors'
+            }, '⬇️ Download CSV'),
             React.createElement('button', {
-              onClick: handleSave,
-              className: 'w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors'
-            }, '💾 Save All / सभी सेव करें')
+              onClick: downloadUserDetailsExcel,
+              className: 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors'
+            }, '⬇️ Export to Excel')
           ),
-
-          saveStatus && React.createElement('div', { className: 'mb-4 p-3 rounded-lg bg-blue-50 text-blue-800 text-center font-medium text-sm sm:text-base' }, saveStatus),
-
-          React.createElement('div', { className: 'grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' },
-            editedVegetables.map(veg => (
-              React.createElement('div', { 
-                key: veg.id, 
-                className: `border rounded-lg p-3 sm:p-4 ${veg.category === 'fruit' ? 'border-l-4 border-orange-400' : 'border-l-4 border-green-400'}`
-              },
-                React.createElement('div', { className: 'flex items-start gap-3 mb-3' },
-                  React.createElement('img', { 
-                    src: veg.image, 
-                    alt: veg.name,
-                    className: 'w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover flex-shrink-0'
-                  }),
-                  React.createElement('div', { className: 'flex-1 min-w-0' },
-                    React.createElement('div', { className: 'flex items-start justify-between gap-2 mb-1' },
-                      React.createElement('div', { className: 'flex items-center gap-2 min-w-0' },
-                        React.createElement('span', { className: 'text-base sm:text-lg flex-shrink-0' }, veg.category === 'fruit' ? '🍎' : '🥬'),
-                        React.createElement('h3', { className: 'font-semibold text-sm sm:text-base truncate' }, veg.name)
-                      ),
-                      React.createElement('button', {
-                        onClick: () => handleDeleteItem(veg.id),
-                        className: 'text-red-500 hover:text-red-700 text-lg sm:text-xl flex-shrink-0 p-1',
-                        title: 'Delete item'
-                      }, '🗑️')
+          Object.keys(userGroups).length === 0 ? (
+            React.createElement('div', { className: 'text-center p-6 text-lg text-red-600 font-semibold' }, 'No user details found. Once a user completes a purchase, their details will appear here.')
+          ) : (
+            Object.entries(userGroups).map(([user, purchases]) => (
+              React.createElement('div', { key: user, className: 'mb-6' },
+                React.createElement('h3', { className: 'text-lg font-bold mb-2 text-blue-800' }, user),
+                purchases.map((p, idx) => (
+                  React.createElement('div', { key: idx, className: 'mb-2 p-2 border rounded-lg bg-gray-50' },
+                    React.createElement('div', { className: 'font-medium' }, `Date: ${p.date}`),
+                    React.createElement('ul', { className: 'list-disc pl-4' },
+                      p.items.map((i, idx2) => (
+                        React.createElement('li', { key: idx2 }, `${i.name} (${i.hindi}) — ${i.qtyKg}kg × ₹${i.pricePerKg} = ₹${i.subtotal}`)
+                      ))
                     ),
-                    React.createElement('p', { className: 'text-gray-600 text-xs sm:text-sm truncate' }, veg.hindi),
-                    React.createElement('p', { className: 'text-xs text-gray-500 truncate' }, `ID: ${veg.id}`)
+                    React.createElement('div', { className: 'font-semibold text-indigo-700' }, `Total: ₹${p.total}`)
                   )
-                ),
-                React.createElement('div', { className: 'space-y-2' },
-                  React.createElement('label', { className: 'block text-xs sm:text-sm font-medium text-gray-700' }, 'Price per kg / प्रति किलो कीमत'),
-                  React.createElement('div', { className: 'flex items-center gap-2' },
-                    React.createElement('span', { className: 'text-base sm:text-lg font-medium flex-shrink-0' }, '₹'),
-                    React.createElement('input', {
-                      type: 'number',
-                      min: '0',
-                      step: '0.5',
-                      value: veg.pricePerKg,
-                      onChange: (e) => handlePriceChange(veg.id, e.target.value),
-                      className: 'flex-1 px-2 sm:px-3 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold transition-colors'
-                    })
-                  )
-                )
+                ))
               )
             ))
           )
         ),
-
-        // Instructions
-        React.createElement('div', { className: 'bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4' },
-          React.createElement('h3', { className: 'font-semibold text-yellow-800 mb-2 text-sm sm:text-base' }, 'Instructions / निर्देश'),
-          React.createElement('ul', { className: 'text-xs sm:text-sm text-yellow-700 space-y-1' },
-            React.createElement('li', null, '• Click "Add New" to add vegetables/fruits'),
-            React.createElement('li', null, '• Edit prices directly or upload a CSV file'),
-            React.createElement('li', null, '• CSV format: id,name,hindi,price,category'),
-            React.createElement('li', null, '• Click 🗑️ to delete items'),
-            React.createElement('li', null, '• Click "Save All" to update all changes'),
-            React.createElement('li', null, '• Changes are saved locally and applied immediately'),
-            React.createElement('li', null, '• नया आइटम जोड़ने के लिए "Add New" पर क्लिक करें')
+        // Purchase Records Section (existing)
+        React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6' },
+          React.createElement('h2', { className: 'text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-blue-700' }, 'User Purchase Records / उपयोगकर्ता खरीद रिकॉर्ड'),
+          React.createElement('div', { className: 'flex flex-col sm:flex-row gap-4 mb-4' },
+            React.createElement('input', {
+              type: 'date',
+              value: dateFilter,
+              onChange: handleDateFilterChange,
+              className: 'px-3 py-2 border rounded-lg text-base'
+            }),
+            React.createElement('button', {
+              onClick: downloadUserDataCSV,
+              className: 'px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors'
+            }, '📥 Export CSV')
+          ),
+          userStatus && React.createElement('div', { className: 'mb-4 p-3 rounded-lg bg-blue-50 text-blue-800 text-center font-medium text-sm sm:text-base' }, userStatus),
+          React.createElement('div', { className: 'overflow-x-auto' },
+            React.createElement('table', { className: 'min-w-full text-sm border' },
+              React.createElement('thead', null,
+                React.createElement('tr', null,
+                  React.createElement('th', { className: 'border px-2 py-1' }, 'Date & Time'),
+                  React.createElement('th', { className: 'border px-2 py-1' }, 'User'),
+                  React.createElement('th', { className: 'border px-2 py-1' }, 'Items Bought'),
+                  React.createElement('th', { className: 'border px-2 py-1' }, 'Total (₹)')
+                )
+              ),
+              React.createElement('tbody', null,
+                userData.length === 0 ? (
+                  React.createElement('tr', null,
+                    React.createElement('td', { colSpan: 4, className: 'text-center p-6 text-lg text-red-600 font-semibold' }, 'No user purchase records found. Once a user completes a purchase, their details will appear here.')
+                  )
+                ) : (
+                  userData.map((u, idx) => (
+                    React.createElement('tr', { key: idx },
+                      React.createElement('td', { className: 'border px-2 py-1' }, u.date),
+                      React.createElement('td', { className: 'border px-2 py-1' }, u.userName),
+                      React.createElement('td', { className: 'border px-2 py-1' },
+                        React.createElement('ul', { className: 'list-disc pl-4' },
+                          u.items.map((i, idx2) => (
+                            React.createElement('li', { key: idx2 },
+                              `${i.name} (${i.hindi}) — ${i.qtyKg}kg × ₹${i.pricePerKg} = ₹${i.subtotal}`
+                            )
+                          ))
+                        )
+                      ),
+                      React.createElement('td', { className: 'border px-2 py-1' }, u.total)
+                    )
+                  ))
+                )
+              )
+            )
           )
-  ),
-  isDevOrAdminVisible() && React.createElement('div', { className: 'mt-4' },
-          React.createElement('button', {
-            onClick: () => clearAllCachesAndReload({ keysToRemove: ['vegetablePrices', 'veghop:adminHash', 'veghop:adminSalt', 'veghop:isAdmin'] }),
-            className: 'w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors'
-          }, '⚠️ Clear caches & reload (dev/admin only)')
         )
       )
-    )
   )
 }

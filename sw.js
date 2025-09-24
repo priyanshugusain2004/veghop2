@@ -14,8 +14,7 @@ const urlsToCache = [
   './src/components/AdminLogin.js',
   './src/components/AdminPanel.js',
   './src/data/vegetables.json',
-  './manifest.json',
-  'https://cdn.tailwindcss.com'
+  './manifest.json'
 ];
 
 // Install event - cache resources
