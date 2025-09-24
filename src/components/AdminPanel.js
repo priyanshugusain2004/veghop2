@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0'
+import React, { useState, useEffect } from 'react'
 import { clearAllCachesAndReload } from '../utils/cacheHelpers.js'
 
 export default function AdminPanel({ onBack }) {
@@ -66,17 +66,8 @@ export default function AdminPanel({ onBack }) {
     'jackfruit': 'कटहल',
     'custard apple': 'सीताफल',
     'dragon fruit': 'ड्रैगन फ्रूट'
-  }
-
-  // Function to auto-translate English name to Hindi
-  function autoTranslate(englishName) {
-    const lowerName = englishName.toLowerCase().trim()
-    return translations[lowerName] || ''
-  }
-
-  useEffect(() => {
-    loadUserData()
-  }, [])
+}
+}
 
   function loadUserData(date = '') {
     try {
@@ -146,7 +137,7 @@ export default function AdminPanel({ onBack }) {
       script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js'
       script.onload = () => downloadUserDetailsExcel()
       document.body.appendChild(script)
-      return
+      return;
     }
     const rows = [['User Name', 'Date & Time', 'Item', 'Hindi', 'Qty (kg)', 'Price/kg', 'Subtotal', 'Total']]
     Object.entries(userGroups).forEach(([user, purchases]) => {
@@ -265,5 +256,5 @@ export default function AdminPanel({ onBack }) {
           )
         )
       )
+    )
   )
-}

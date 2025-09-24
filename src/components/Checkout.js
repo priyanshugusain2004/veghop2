@@ -1,4 +1,4 @@
-import React from 'https://esm.sh/react@18.2.0'
+import React from 'react'
 import { BACKEND_URL } from '../config.js'
 import { useUser } from '../context/UserContext.js'
 
@@ -56,7 +56,7 @@ export default function Checkout({ onContinue, onNewUser }) {
       ['Total', '', '', '', total]
     ]
     try {
-      const XLSX = await import(XLSX_URL)
+      const XLSX = await import(/* @vite-ignore */ XLSX_URL)
       const ws = XLSX.utils.aoa_to_sheet(rows)
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, 'Purchase')

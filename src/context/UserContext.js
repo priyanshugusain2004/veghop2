@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'https://esm.sh/react@18.2.0'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const UserContext = createContext(null)
 

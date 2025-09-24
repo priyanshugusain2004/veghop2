@@ -1,4 +1,4 @@
-import React from 'https://esm.sh/react@18.2.0'
+import React from 'react'
 import { useUser } from '../context/UserContext.js'
 
 export default function Cart({ onAddMore, onCheckout, onBack }) {

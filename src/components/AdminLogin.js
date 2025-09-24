@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0'
+import React, { useState, useEffect } from 'react'
 
 // Client-only admin for single-device use: set-on-first-run salted SHA-256 hash stored in localStorage.
 // Not suitable for public deployments — prefer server-side auth.
